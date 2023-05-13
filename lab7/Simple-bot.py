@@ -16,6 +16,7 @@ con = psycopg2.connect(
 )
 
 cur = con.cursor()
+
 def get_current_week_type():
     week_number = datetime.date.today().isocalendar()[1]
     if week_number % 2 == 0:
@@ -49,18 +50,26 @@ def handle_all_message(message):
         markup.add(itembtn1, itembtn2, itembtn3, itembtn4, itembtn5, itembtn6, itembtn7, back_button)
         bot.send_message(message.chat.id, "Выберите день недели:", reply_markup=markup)
     elif message.text in ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница']:
-        cur.execute(f"SELECT * FROM Timetable WHERE day='{message.text}'")
+        week_type = get_current_week_type()
+        cur.execute(f"SELECT * FROM Timetable WHERE day='{message.text}' AND week_type='{week_type}'")
         rows = cur.fetchall()
+        schedule = ''
         for row in rows:
-            bot.reply_to(message, f"{row[1]}\n_____________\n{row[2]} {row[3]} {row[4]} {row[5]}")
+            schedule += f"{row[1]}\n_____________\n{row[2]} {row[3]} {row[4]} {row[5]}\n"
+        bot.reply_to(message, schedule)
     elif message.text == 'Расписание на текущую неделю':
-        cur.execute(f"SELECT * FROM Timetable")
+        week_type = get_current_week_type()
+        cur.execute(f"SELECT * FROM Timetable WHERE week_type='{week_type}'")
         rows = cur.fetchall()
         for row in rows:
             bot.reply_to(message, f"{row[1]}\n_____________\n{row[2]} {row[3]} {row[4]} {row[5]}")
     elif message.text == 'Расписание на следующую неделю':
-        # Добавьте логику для вывода расписания на следующую неделю
-        pass
+        week_type = 'нижняя' if get_current_week_type() == 'верхняя' else 'верхняя'
+        cur.execute(f"SELECT * FROM Timetable WHERE week_type='{week_type}'")
+        rows = cur.fetchall()
+        for row in rows:
+            bot.reply_to(message, f"{row[1]}\n_____________\n{row[2]} {row[3]} {row[4]} {row[5]}")
+
     elif message.text == 'Какая неделя':
         week_number = datetime.date.today().isocalendar()[1]
         if week_number % 2 == 0:
@@ -78,5 +87,5 @@ def handle_all_message(message):
     else:
         bot.reply_to(message, 'Извините, я Вас не понял.')
 
-bot.polling()
 
+bot.polling()

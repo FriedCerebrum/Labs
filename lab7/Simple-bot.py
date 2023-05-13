@@ -16,6 +16,12 @@ con = psycopg2.connect(
 )
 
 cur = con.cursor()
+def get_current_week_type():
+    week_number = datetime.date.today().isocalendar()[1]
+    if week_number % 2 == 0:
+        return 'нижняя'
+    else:
+        return 'верхняя'
 
 # Создаем кнопки
 @bot.message_handler(commands=['start'])

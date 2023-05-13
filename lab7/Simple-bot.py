@@ -53,10 +53,13 @@ def handle_all_message(message):
         week_type = get_current_week_type()
         cur.execute(f"SELECT * FROM Timetable WHERE day='{message.text}' AND week_type='{week_type}'")
         rows = cur.fetchall()
-        schedule = ''
-        for row in rows:
-            schedule += f"{row[1]}\n_____________\n{row[2]} {row[3]} {row[4]} {row[5]}\n"
-        bot.reply_to(message, schedule)
+        if rows:
+            schedule = f"{message.text}\n____________\n"
+            for row in rows:
+                schedule += f"{row[2]} {row[3]} {row[4]}\n"
+            bot.reply_to(message, schedule)
+        else:
+            bot.reply_to(message, "Расписание отсутствует")
     elif message.text == 'Расписание на текущую неделю':
         week_type = get_current_week_type()
         cur.execute(f"SELECT * FROM Timetable WHERE week_type='{week_type}'")
@@ -81,7 +84,11 @@ def handle_all_message(message):
 
     elif message.text == 'Помощь':
         bot.reply_to(message,
-                     'Этот бот предназначен для отображения расписания занятий. Вы можете выбрать день недели или показать расписание на текущую или следующую неделю. Список доступных команд: \n /start - начать работу с ботом \n /week - показать текущую неделю \n /mtuci - ссылка на официальный сайт МТУСИ \n /help - показать эту справку.')
+                     'Этот бот предназначен для отображения расписания занятий. '
+                     'Вы можете выбрать день недели или показать расписание на текущую или следующую неделю. '
+                     'Список доступных команд: \n /start - начать работу с '
+                     'ботом \n /week - показать текущую неделю \n /mtuci - ссылка на '
+                     'официальный сайт МТУСИ \n /help - показать эту справку.')
     elif message.text == 'Назад':
         send_welcome(message)  # Возврат в главное меню
     else:

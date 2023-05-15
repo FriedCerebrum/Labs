@@ -73,18 +73,32 @@ def handle_all_message(message):
         else:
             bot.reply_to(message, "Расписание отсутствует")
 
-    elif message.text == 'Расписание на текущую неделю':
-        week_type = get_current_week_type()
-        cur.execute(f"SELECT * FROM Timetable WHERE week_type='{week_type}'")
-        rows = cur.fetchall()
-        for row in rows:
-            bot.reply_to(message, f"{row[1]}\n_____________\n{row[2]} {row[3]} {row[4]} {row[5]}")
-    elif message.text == 'Расписание на следующую неделю':
-        week_type = 'нижняя' if get_current_week_type() == 'верхняя' else 'верхняя'
-        cur.execute(f"SELECT * FROM Timetable WHERE week_type='{week_type}'")
-        rows = cur.fetchall()
-        for row in rows:
-            bot.reply_to(message, f"{row[1]}\n_____________\n{row[2]} {row[3]} {row[4]} {row[5]}")
+    elif message.text in ['Расписание на текущую неделю', 'Расписание на следующую неделю']:
+        days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница']
+        week_type = 1 if message.text == 'Расписание на текущую неделю' else 2
+
+        for day_of_week in range(1, 6):
+            cur.execute(f"""
+                        SELECT t.start_time, s.name, st.name, te.full_name, tt.room_number
+                        FROM timetable tt
+                        JOIN class c ON tt.class = c.id
+                        JOIN subject s ON c.subject = s.id
+                        JOIN subject_type st ON c.subject_type = st.id
+                        JOIN teacher_subject ts ON ts.class = c.id
+                        JOIN teacher te ON ts.teacher = te.id
+                        JOIN time t ON tt.class_time = t.id
+                        WHERE tt.week = {week_type} AND tt.day = {day_of_week}
+                        ORDER BY t.id
+                    """)
+            rows = cur.fetchall()
+            if rows:
+                schedule = [f"{i + 1}. {row[0]}\n{row[1]}\n{row[2]}\n{row[3]} | {row[4]}\n—————————" for i, row in
+                            enumerate(rows)]
+                for i in range(len(schedule), 5):
+                    schedule.append(f"{i + 1}. Нет пары\n—————————")
+                bot.send_message(message.chat.id, f"{days[day_of_week - 1]}\n\n" + "\n".join(schedule))
+            else:
+                bot.send_message(message.chat.id, f"{days[day_of_week - 1]}\n\nРасписание отсутствует")
 
     elif message.text == 'Какая неделя':
         week_number = datetime.date.today().isocalendar()[1]
